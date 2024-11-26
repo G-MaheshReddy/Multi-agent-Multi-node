@@ -1,0 +1,52 @@
+pipeline {
+    agent any // Use the default Jenkins agent
+
+    stages {
+        stage('Setup Backend') {
+            steps {
+                echo 'Building and running the backend container...'
+                sh '''
+                    docker build -t backend-image ./backend
+                    docker run -d --name backend-container backend-image
+                '''
+            }
+        }
+
+        stage('Setup Frontend') {
+            steps {
+                echo 'Building and running the frontend container...'
+                sh '''
+                    docker build -t frontend-image ./frontend
+                    docker run -d --name frontend-container frontend-image
+                '''
+            }
+        }
+
+        stage('Verify Containers') {
+            parallel {
+                stage('Verify Backend') {
+                    steps {
+                        echo 'Checking backend logs...'
+                        sh 'docker logs backend-container'
+                    }
+                }
+                stage('Verify Frontend') {
+                    steps {
+                        echo 'Checking frontend logs...'
+                        sh 'docker logs frontend-container'
+                    }
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                echo 'Stopping and removing all containers...'
+                sh '''
+                    docker stop backend-container frontend-container
+                    docker rm backend-container frontend-container
+                '''
+            }
+        }
+    }
+}
